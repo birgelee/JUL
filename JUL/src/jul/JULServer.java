@@ -10,13 +10,17 @@ import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.PrintWriter;
+import java.io.RandomAccessFile;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -34,7 +38,7 @@ public class JULServer {
     private static int imageIndex = 1;
     
     public static void main(String[] args) throws Exception {
-        int portnumber = 80;
+        int portnumber = 8080;
         ServerSocket serverSocket = new ServerSocket(portnumber);
         new Thread(new Runnable() {
             @Override
@@ -78,6 +82,10 @@ public class JULServer {
                     objectInputStream = null;
                     saveImage(lastScreneCap, "./screnecap " + imageIndex++ + ".png");
                     break;
+                case JUL.SEND_VERSION:
+                    dataParam = in.read();
+                    System.out.println("A version number was sent: " + dataParam);
+                    break;
                     
             }
             type = in.read();
@@ -88,18 +96,40 @@ public class JULServer {
 
     public static void waitForExit() {
         Scanner usrin = new Scanner(System.in);
-        usrin.next();
-        try {
-            System.out.println("terminating client and server");
-            clientSocket.getOutputStream().write(JUL.TERMINATE_SESSION);
-            Thread.sleep(100);
-        } catch (IOException ex) {
-            Logger.getLogger(JULServer.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (InterruptedException ex) {
-            Logger.getLogger(JULServer.class.getName()).log(Level.SEVERE, null, ex);
+        while (true) {
+            String command = usrin.nextLine();
+            if (command.equals("kill") || command.equals("quit")) {
+                try {
+                    System.out.println("terminating client and server");
+                    clientSocket.getOutputStream().write(JUL.TERMINATE_SESSION);
+                    Thread.sleep(100);
+                    System.exit(0);
+                } catch (IOException ex) {
+                    Logger.getLogger(JULServer.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(JULServer.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            } else if (command.equals("update")) {
+                try {
+                    RandomAccessFile f = new RandomAccessFile("./JUL-update.jar", "r");
+                    byte[] bytes = new byte[(int) f.length()];
+                    f.read(bytes);
+                    clientSocket.getOutputStream().write(JUL.UPDATE_PACKAGE);
+                    clientSocket.getOutputStream().write(ByteBuffer.allocate(Integer.BYTES).putInt((int)f.length()).array());
+                    clientSocket.getOutputStream().write(bytes);
+                    System.exit(0);
+                } catch (Exception ex) {
+                    Logger.getLogger(JULServer.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            } else if (command.equals("version")) {
+                try {
+                   clientSocket.getOutputStream().write(JUL.REQUEST_VERSION);
+                } catch (Exception ex) {
+                    Logger.getLogger(JULServer.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            
         }
-        
-        System.exit(0);
     }
     
     static byte[] br = new byte[4];
