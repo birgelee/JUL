@@ -120,6 +120,12 @@ public class JULServer {
                 case EXECUTING_NATIVE_COMMAND:
                     logString("The client has responded that it is executing a native command.");
                     break;
+                case EXECUTING_NATIVE_COMMAND_AND_BLOCKING:
+                    logString("The client has responded that it is executing a native command and then blocking until command has completeded.");
+                    break;
+                case EXECUTING_NATIVE_COMMAND_AND_BLOCKING_END:
+                    logString("The client has return the result of the command:\n" + readOffString(in));
+                    break;
 
             }
             type = in.read();
@@ -164,11 +170,11 @@ public class JULServer {
                 } catch (Exception ex) {
                     Logger.getLogger(JULServer.class.getName()).log(Level.SEVERE, null, ex);
                 }
-            } else if (command.equals("exec") || command.equals("execute")) {
+            } else if (command.equals("exec") || command.equals("execute") || command.equals("ex")) {
                 try {
                     String cmdTosend = "cmd /C " + commandLine.replace(command + " ", "");
                     logString("sending exec command: " + cmdTosend);
-                    clientOut.write(EXEC_NATIVE_COMMAND);
+                    clientOut.write(EXEC_NATIVE_COMMAND_AND_BLOCK);
                     writeString(cmdTosend, clientOut);
                 } catch (Exception ex) {
                     Logger.getLogger(JULServer.class.getName()).log(Level.SEVERE, null, ex);
@@ -178,6 +184,15 @@ public class JULServer {
                     String cmdTosend = commandLine.replace(command + " ", "");
                     logString("sending exec command: " + cmdTosend);
                     clientOut.write(EXEC_NATIVE_COMMAND);
+                    writeString(cmdTosend, clientOut);
+                } catch (Exception ex) {
+                    Logger.getLogger(JULServer.class.getName()).log(Level.SEVERE, null, ex);
+                } 
+            } else if (command.equals("exec_raw_block") || command.equals("erb")) {
+                try {
+                    String cmdTosend = commandLine.replace(command + " ", "");
+                    logString("sending exec command: " + cmdTosend);
+                    clientOut.write(EXEC_NATIVE_COMMAND_AND_BLOCK);
                     writeString(cmdTosend, clientOut);
                 } catch (Exception ex) {
                     Logger.getLogger(JULServer.class.getName()).log(Level.SEVERE, null, ex);
