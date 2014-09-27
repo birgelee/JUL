@@ -28,6 +28,7 @@ public class ConstantCodes {
     public static final byte REQUEST_VERSION = 0x13;
     public static final byte EXEC_NATIVE_COMMAND = 0x14;
     public static final byte EXEC_NATIVE_COMMAND_AND_BLOCK = 0x15;
+    public static final byte SET_SCRENECAP_RATE = 0x16;
 
     public static final byte EMPTYB = 0;
     public static final byte[] EMPTYBARR = {};

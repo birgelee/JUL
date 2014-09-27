@@ -18,3 +18,5 @@ hs_err_pid*
 /JULClient/dist/
 /JULClient/build/
 /JULServer/build/
+/JQMessage/nbproject/private/
+/JULServer/dist/

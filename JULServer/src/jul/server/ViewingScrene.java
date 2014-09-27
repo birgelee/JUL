@@ -74,7 +74,7 @@ public class ViewingScrene extends JApplet{
             oldScale = scale;
             g.clearRect(0, 0, getWidth(), getHeight());
         }
-        if (!capUpdated) {
+        if (!capUpdated && JULServer.lastRenderedScreneCap != null) {
             capUpdated = true;
             scaledSreneCap = JULServer.lastRenderedScreneCap.getScaledInstance((int) (JULServer.lastRenderedScreneCap.getWidth() * scale), (int) (JULServer.lastRenderedScreneCap.getHeight() * scale), Image.SCALE_SMOOTH);
         }
